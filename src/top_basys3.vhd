@@ -34,6 +34,8 @@ architecture top_basys3_arch of top_basys3 is
     signal s_reset_clk : std_logic;
     signal s_reset_fsm : std_logic;
    
+   signal s_mux_out : std_logic_vector( 3 downto 0);
+   
 	-- component declarations
     component sevenseg_decoder is
         port (
@@ -81,7 +83,7 @@ begin
 	   generic map (k_DIV => 25000000)
 	   port map (
 	       i_clk => clk, 
-	       i_reset => btnU, 
+	       i_reset => s_reset_clk, 
 	       o_clk => s_clk_fsm
 	       );
 	       
@@ -89,14 +91,14 @@ begin
 	   generic map (k_DIV => 50000)
 	   port map (
 	       i_clk => clk, 
-	       i_reset => btnU, 
+	       i_reset => s_reset_clk, 
 	       o_clk => s_clk_tdm
 	       );
 	       
 	 elev1_inst : elevator_controller_fsm 
 	   port map (
 	       i_clk => s_clk_fsm, 
-	       i_reset => btnU, 
+	       i_reset => s_reset_fsm, 
 	       is_stopped => sw(1), 
 	       go_up_down => sw(0), 
 	       o_floor => s_floor1
@@ -104,12 +106,31 @@ begin
 	       
 	 elev2_inst : elevator_controller_fsm 
 	   port map (
-	       i_clk => s_clk_fsm, 
-	       i_reset => btnU, 
+	       i_reset => s_reset_fsm, 
+	       i_clk => s_clk_fsm,
 	       is_stopped => sw(14), 
 	       go_up_down => sw(15), 
 	       o_floor => s_floor2
 	       );
+	       
+	 tdm_inst : TDM4
+		generic map (k_WIDTH => 4 )
+		port map(
+		    i_reset => btnU,   
+			i_clk => s_clk_tdm,
+			i_D3  => "1111",
+			i_D2 => s_floor2,  
+			i_D1 => "1111",   
+			i_D0 => s_floor1,  
+			o_data => s_mux_out,
+			o_sel => an      
+		    );
+
+	seven_seg_inst : sevenseg_decoder
+		port map(
+			i_Hex => s_mux_out,
+			o_seg_n => seg    
+		    );
     	
 	
 	-- CONCURRENT STATEMENTS ----------------------------
